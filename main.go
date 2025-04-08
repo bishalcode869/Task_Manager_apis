@@ -7,33 +7,28 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// create the type for Task
+// Task struct defines a task model
 type Task struct {
 	ID    int    `json:"id"`
 	Title string `json:"title"`
 	Done  bool   `json:"done"`
 }
 
-// store and  id should be increment
-var tasks []Task
-var nextId int = 1
+var tasks []Task   //Stores all tasks
+var nextId int = 1 // Auto-increment ID
 
-// main function
 func main() {
-	// create server with gin framework with gin route
-	router := gin.Default()
 
-	// now create apis for task manager first home
+	router := gin.Default() // Create a new Gin router
+
+	// Home route - welcome message
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, gin.H{"message": "Welcome to the Task manager web apis"})
 	})
 
-	// post task, add the task
+	// Create a new task
 	router.POST("/tasks", func(ctx *gin.Context) {
-		// create a new task
 		var newTask Task
-
-		// let's bind the post json to new tasks
 		if err := ctx.BindJSON(&newTask); err != nil {
 			ctx.JSON(http.StatusBadRequest, gin.H{"message": "invalid JSON"})
 			return
@@ -45,12 +40,13 @@ func main() {
 		ctx.JSON(http.StatusCreated, newTask)
 
 	})
-	// get task to fetch all the tasks
+
+	// Get all tasks
 	router.GET("/tasks", func(ctx *gin.Context) {
 		ctx.JSON(http.StatusOK, tasks)
 	})
 
-	// GET task by id
+	// Get a task by ID
 	router.GET("/tasks/:id", func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
 		var id int
@@ -67,7 +63,8 @@ func main() {
 		}
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 	})
-	// put task for marked the done
+
+	// Mark task as done
 	router.PUT("/tasks/:id/done", func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
 		var id int
@@ -89,7 +86,8 @@ func main() {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Task not found"})
 
 	})
-	// delete task for delete the task
+
+	// Delete a task by ID
 	router.DELETE("/tasks/:id", func(ctx *gin.Context) {
 		idParam := ctx.Param("id")
 		var id int
@@ -113,7 +111,7 @@ func main() {
 		tasks = append(tasks[:index], tasks[index+1:]...)
 		ctx.JSON(http.StatusOK, gin.H{"message": "Task deleted"})
 	})
-	// listeinig server
-	router.Run(":8080")
+
+	router.Run(":8080") //Run the server on port 8080
 
 }
