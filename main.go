@@ -2,17 +2,18 @@ package main
 
 import (
 	"Task_manager_apis/routes"
+	"fmt"
 
 	"github.com/gin-gonic/gin"
 )
 
+// main intializes the server an sets up routes
 func main() {
-	// create routes
 	r := gin.Default()
 
-	// router
+	// Register routes
 	routes.TaskRoutes(r)
 
-	// running server at 8080
+	fmt.Printf("🚀 Server is running at http://localhost:8080")
 	r.Run(":8080")
 }

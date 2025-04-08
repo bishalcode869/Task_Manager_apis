@@ -8,6 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// function for home
+func Home(c *gin.Context) {
+	c.JSON(http.StatusOK, gin.H{"Message": "Welcome to Task_Manager_Application"})
+}
+
 // function for add task
 func AddTask(c *gin.Context) {
 	var newTask models.Task

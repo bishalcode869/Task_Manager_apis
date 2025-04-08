@@ -7,6 +7,7 @@ import (
 )
 
 func TaskRoutes(r *gin.Engine) {
+	r.GET("/", controllers.Home)
 	tasks := r.Group("/tasks")
 	{
 		tasks.POST("/", controllers.AddTask)
