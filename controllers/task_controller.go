@@ -29,7 +29,7 @@ func ListTasks(c *gin.Context) {
 }
 
 // function for get task by id
-func TaskByID(c *gin.Context) {
+func GetByID(c *gin.Context) {
 	idParam := c.Param("id")
 	id, err := strconv.Atoi(idParam)
 	if err != nil {
