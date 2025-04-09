@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"Task_manager_apis/config"
 	"Task_manager_apis/models"
 	"net/http"
 	"strconv"
@@ -25,12 +24,12 @@ func AddTask(c *gin.Context) {
 
 	// Bind the input JSON to the new task struct
 	if err := c.ShouldBindJSON(&newTask); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid input"})
+		handleError(c, http.StatusBadRequest, "Invalid input")
 		return
 	}
 
-	// Create the new task in the database
-	if err := config.DB.Create(&newTask).Error; err != nil {
+	// Create the new task in the database using the CreateTask function
+	if err := models.CreateTask(&newTask); err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to add task")
 		return
 	}
@@ -46,11 +45,9 @@ func ListTasks(c *gin.Context) {
 	pageNum, _ := strconv.Atoi(page)
 	limitNum, _ := strconv.Atoi(limit)
 
-	// Declare a slice to hold the tasks
-	var tasks []models.Task
-
-	// Fetch the tasks with pagination
-	if err := config.DB.Offset((pageNum - 1) * limitNum).Limit(limitNum).Find(&tasks).Error; err != nil {
+	// Fetch the tasks from the database using GetAllTasks function
+	tasks, err := models.GetAllTasks(pageNum, limitNum)
+	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to fetch tasks")
 		return
 	}
@@ -68,9 +65,9 @@ func GetByID(c *gin.Context) {
 		return
 	}
 
-	var task models.Task
-	// Fetch the task by its ID
-	if err := config.DB.First(&task, id).Error; err != nil {
+	// Fetch the task by its ID using GetTaskByID function
+	task, err := models.GetTaskByID(id)
+	if err != nil {
 		handleError(c, http.StatusNotFound, "Task not found")
 		return
 	}
@@ -88,25 +85,10 @@ func MarkTaskDone(c *gin.Context) {
 		return
 	}
 
-	var task models.Task
-	// Fetch the task by its ID
-	if err := config.DB.First(&task, id).Error; err != nil {
-		handleError(c, http.StatusNotFound, "Task not found")
-		return
-	}
-
-	// Check if the task is already marked as done
-	if task.Done {
-		c.JSON(http.StatusOK, gin.H{"message": "Task is already marked as done"})
-		return
-	}
-
-	// Mark the task as done
-	task.Done = true
-
-	// Update the task in the database
-	if err := config.DB.Save(&task).Error; err != nil {
-		handleError(c, http.StatusInternalServerError, "Failed to update task")
+	// Mark the task as done using MarkTaskDone function
+	task, err := models.MarkTaskDone(id)
+	if err != nil {
+		handleError(c, http.StatusNotFound, "Task not found or update failed")
 		return
 	}
 
@@ -123,15 +105,9 @@ func DeleteTask(c *gin.Context) {
 		return
 	}
 
-	var task models.Task
-	// Fetch the task by its ID
-	if err := config.DB.First(&task, id).Error; err != nil {
-		handleError(c, http.StatusNotFound, "Task not found")
-		return
-	}
-
-	// Delete the task from the database
-	if err := config.DB.Delete(&task).Error; err != nil {
+	// Delete the task using DeleteTask function
+	err = models.DeleteTask(id)
+	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to delete task")
 		return
 	}
