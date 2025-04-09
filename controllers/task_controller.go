@@ -2,10 +2,13 @@ package controllers
 
 import (
 	"Task_manager_apis/models"
+	"Task_manager_apis/services"
+	"errors"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
 
 // handleError simplifies error response handling
@@ -13,105 +16,112 @@ func handleError(c *gin.Context, status int, message string) {
 	c.JSON(status, gin.H{"error": message})
 }
 
-// Home function: returns a welcome message
+// Home returns a welcome message
 func Home(c *gin.Context) {
-	c.JSON(http.StatusOK, gin.H{"Message": "Welcome to Task_Manager_Application"})
+	c.JSON(http.StatusOK, gin.H{"message": "Welcome to Task_Manager_Application"})
 }
 
-// AddTask function: adds a new task to the database
+// AddTask adds a new task to the database
 func AddTask(c *gin.Context) {
 	var newTask models.Task
 
-	// Bind the input JSON to the new task struct
 	if err := c.ShouldBindJSON(&newTask); err != nil {
-		handleError(c, http.StatusBadRequest, "Invalid input")
+		handleError(c, http.StatusBadRequest, "Invalid input: "+err.Error())
 		return
 	}
 
-	// Create the new task in the database using the CreateTask function
-	if err := models.CreateTask(&newTask); err != nil {
+	if err := services.CreateTaskService(&newTask); err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to add task")
 		return
 	}
 
-	// Return the created task
 	c.JSON(http.StatusCreated, newTask)
 }
 
-// ListTasks function: retrieves a list of tasks with pagination
+// ListTasks retrieves a list of tasks with pagination
 func ListTasks(c *gin.Context) {
-	page := c.DefaultQuery("page", "1")    // Default page is 1
-	limit := c.DefaultQuery("limit", "10") // Default limit is 10
-	pageNum, _ := strconv.Atoi(page)
-	limitNum, _ := strconv.Atoi(limit)
+	pageParam := c.DefaultQuery("page", "1")
+	limitParam := c.DefaultQuery("limit", "10")
 
-	// Fetch the tasks from the database using GetAllTasks function
-	tasks, err := models.GetAllTasks(pageNum, limitNum)
+	page, err := strconv.Atoi(pageParam)
+	if err != nil || page < 1 {
+		handleError(c, http.StatusBadRequest, "Invalid page number")
+		return
+	}
+
+	limit, err := strconv.Atoi(limitParam)
+	if err != nil || limit < 1 {
+		handleError(c, http.StatusBadRequest, "Invalid limit number")
+		return
+	}
+
+	tasks, err := services.GetAllTasksService(page, limit)
 	if err != nil {
 		handleError(c, http.StatusInternalServerError, "Failed to fetch tasks")
 		return
 	}
 
-	// Return the list of tasks
 	c.JSON(http.StatusOK, tasks)
 }
 
-// GetByID function: retrieves a task by its ID
+// GetByID retrieves a task by its ID
 func GetByID(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		handleError(c, http.StatusBadRequest, "Invalid input ID")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id < 1 {
+		handleError(c, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	// Fetch the task by its ID using GetTaskByID function
-	task, err := models.GetTaskByID(id)
+	task, err := services.GetTaskByIDService(id)
 	if err != nil {
-		handleError(c, http.StatusNotFound, "Task not found")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			handleError(c, http.StatusNotFound, "Task not found")
+		} else {
+			handleError(c, http.StatusInternalServerError, "Failed to retrieve task")
+		}
 		return
 	}
 
-	// Return the task
 	c.JSON(http.StatusOK, task)
 }
 
-// MarkTaskDone function: marks a task as done
+// MarkTaskDone marks a task as done
 func MarkTaskDone(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		handleError(c, http.StatusBadRequest, "Invalid input ID")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id < 1 {
+		handleError(c, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	// Mark the task as done using MarkTaskDone function
-	task, err := models.MarkTaskDone(id)
+	task, err := services.MarkTaskDoneService(id)
 	if err != nil {
-		handleError(c, http.StatusNotFound, "Task not found or update failed")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			handleError(c, http.StatusNotFound, "Task not found")
+		} else {
+			handleError(c, http.StatusInternalServerError, "Failed to update task status")
+		}
 		return
 	}
 
-	// Return the updated task
 	c.JSON(http.StatusOK, task)
 }
 
-// DeleteTask function: deletes a task by its ID
+// DeleteTask deletes a task by its ID
 func DeleteTask(c *gin.Context) {
-	idParam := c.Param("id")
-	id, err := strconv.Atoi(idParam)
-	if err != nil {
-		handleError(c, http.StatusBadRequest, "Invalid input ID")
+	id, err := strconv.Atoi(c.Param("id"))
+	if err != nil || id < 1 {
+		handleError(c, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	// Delete the task using DeleteTask function
-	err = models.DeleteTask(id)
-	if err != nil {
-		handleError(c, http.StatusInternalServerError, "Failed to delete task")
+	if err := services.DeleteTaskService(id); err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			handleError(c, http.StatusNotFound, "Task not found")
+		} else {
+			handleError(c, http.StatusInternalServerError, "Failed to delete task")
+		}
 		return
 	}
 
-	// Return a success message
 	c.JSON(http.StatusOK, gin.H{"message": "Task successfully deleted"})
 }

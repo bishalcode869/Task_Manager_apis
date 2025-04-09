@@ -40,11 +40,16 @@ func MarkTaskDone(id int) (*Task, error) {
 		return nil, err
 	}
 	task.Done = true
-	config.DB.Save(&task)
+	if err := config.DB.Save(&task).Error; err != nil {
+		return nil, err
+	}
 	return &task, nil
 }
 
 // DeleteTask deletes a task by its ID from the database
 func DeleteTask(id int) error {
-	return config.DB.Delete(&Task{}, id).Error
+	if err := config.DB.Delete(&Task{}, id).Error; err != nil {
+		return err
+	}
+	return nil
 }
