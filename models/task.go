@@ -1,10 +1,9 @@
 package models
 
-type Task struct {
-	ID    int    `json:"id"`
-	Title string `json:"title"`
-	Done  bool   `json:"done"`
-}
+import "gorm.io/gorm"
 
-var Tasks []Task
-var NextID = 1
+type Task struct {
+	gorm.Model        // Includes fields lik ID, CreatedAt, UpdatedAt, and DeletedAt
+	Title      string `json:"title"`
+	Done       bool   `json:"done"`
+}
