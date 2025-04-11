@@ -5,30 +5,37 @@ import (
 	"errors"
 )
 
-// CreateTaskService adds a new task
-func CreateTaskService(task *models.Task) error {
+type TaskService struct{}
+
+// create new instance
+func NewTaskService() *TaskService {
+	return &TaskService{}
+}
+
+// CreateTask adds a new task
+func (s *TaskService) CreateTask(task *models.Task) error {
 	return models.CreateTask(task)
 }
 
-// GetAllTasksService fetches all tasks with pagination
-func GetAllTasksService(pageNum, limitNum int) ([]models.Task, error) {
-	return models.GetAllTasks(pageNum, limitNum)
+// GetAllTasks fetches all tasks with pagination for a user
+func (s *TaskService) GetAllTasks(userID uint, pageNum, limitNum int) ([]models.Task, error) {
+	return models.GetAllTasks(int(userID), pageNum, limitNum)
 }
 
-// GetTaskByIDService retrieves a task by ID
-func GetTaskByIDService(id int) (*models.Task, error) {
+// GetTaskByID retrieves a task by ID and user
+func (s *TaskService) GetTaskByID(id int, userID uint) (*models.Task, error) {
 	if id <= 0 {
 		return nil, errors.New("invalid ID")
 	}
-	return models.GetTaskByID(id)
+	return models.GetTaskByID(id, userID)
 }
 
-// MarkTaskDoneService marks a task as done
-func MarkTaskDoneService(id int) (*models.Task, error) {
-	return models.MarkTaskDone(id)
+// MarkTaskDone marks a task as done for a user
+func (s *TaskService) MarkTaskDone(id int, userID uint) (*models.Task, error) {
+	return models.MarkTaskDone(id, userID)
 }
 
-// DeleteTaskService deletes a task
-func DeleteTaskService(id int) error {
-	return models.DeleteTask(id)
+// DeleteTask deletes a task for a user
+func (s *TaskService) DeleteTask(id int, userID uint) error {
+	return models.DeleteTask(id, userID)
 }

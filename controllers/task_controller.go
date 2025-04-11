@@ -3,6 +3,7 @@ package controllers
 import (
 	"Task_manager_apis/models"
 	"Task_manager_apis/services"
+	"Task_manager_apis/utils"
 	"errors"
 	"net/http"
 	"strconv"
@@ -10,11 +11,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
 )
-
-// handleError simplifies error response handling
-func handleError(c *gin.Context, status int, message string) {
-	c.JSON(status, gin.H{"error": message})
-}
 
 // Home returns a welcome message
 func Home(c *gin.Context) {
@@ -26,12 +22,17 @@ func AddTask(c *gin.Context) {
 	var newTask models.Task
 
 	if err := c.ShouldBindJSON(&newTask); err != nil {
-		handleError(c, http.StatusBadRequest, "Invalid input: "+err.Error())
+		utils.HandleError(c, http.StatusBadRequest, "Invalid input: "+err.Error())
 		return
 	}
 
-	if err := services.CreateTaskService(&newTask); err != nil {
-		handleError(c, http.StatusInternalServerError, "Failed to add task")
+	// Get user ID from context
+	userID := c.GetUint("userID")
+	newTask.UserID = userID
+
+	service := services.NewTaskService()
+	if err := service.CreateTask(&newTask); err != nil {
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to add task")
 		return
 	}
 
@@ -40,24 +41,27 @@ func AddTask(c *gin.Context) {
 
 // ListTasks retrieves a list of tasks with pagination
 func ListTasks(c *gin.Context) {
+	userID := c.GetUint("userID")
+
 	pageParam := c.DefaultQuery("page", "1")
 	limitParam := c.DefaultQuery("limit", "10")
 
 	page, err := strconv.Atoi(pageParam)
 	if err != nil || page < 1 {
-		handleError(c, http.StatusBadRequest, "Invalid page number")
+		utils.HandleError(c, http.StatusBadRequest, "Invalid page number")
 		return
 	}
 
 	limit, err := strconv.Atoi(limitParam)
 	if err != nil || limit < 1 {
-		handleError(c, http.StatusBadRequest, "Invalid limit number")
+		utils.HandleError(c, http.StatusBadRequest, "Invalid limit number")
 		return
 	}
 
-	tasks, err := services.GetAllTasksService(page, limit)
+	service := services.NewTaskService()
+	tasks, err := service.GetAllTasks(userID, page, limit)
 	if err != nil {
-		handleError(c, http.StatusInternalServerError, "Failed to fetch tasks")
+		utils.HandleError(c, http.StatusInternalServerError, "Failed to fetch tasks")
 		return
 	}
 
@@ -66,18 +70,21 @@ func ListTasks(c *gin.Context) {
 
 // GetByID retrieves a task by its ID
 func GetByID(c *gin.Context) {
+	userID := c.GetUint("userID")
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id < 1 {
-		handleError(c, http.StatusBadRequest, "Invalid task ID")
+		utils.HandleError(c, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	task, err := services.GetTaskByIDService(id)
+	service := services.NewTaskService()
+	task, err := service.GetTaskByID(id, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			handleError(c, http.StatusNotFound, "Task not found")
+			utils.HandleError(c, http.StatusNotFound, "Task not found")
 		} else {
-			handleError(c, http.StatusInternalServerError, "Failed to retrieve task")
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to retrieve task")
 		}
 		return
 	}
@@ -87,18 +94,21 @@ func GetByID(c *gin.Context) {
 
 // MarkTaskDone marks a task as done
 func MarkTaskDone(c *gin.Context) {
+	userID := c.GetUint("userID")
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id < 1 {
-		handleError(c, http.StatusBadRequest, "Invalid task ID")
+		utils.HandleError(c, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	task, err := services.MarkTaskDoneService(id)
+	service := services.NewTaskService()
+	task, err := service.MarkTaskDone(id, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			handleError(c, http.StatusNotFound, "Task not found")
+			utils.HandleError(c, http.StatusNotFound, "Task not found")
 		} else {
-			handleError(c, http.StatusInternalServerError, "Failed to update task status")
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to update task status")
 		}
 		return
 	}
@@ -108,17 +118,20 @@ func MarkTaskDone(c *gin.Context) {
 
 // DeleteTask deletes a task by its ID
 func DeleteTask(c *gin.Context) {
+	userID := c.GetUint("userID")
+
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id < 1 {
-		handleError(c, http.StatusBadRequest, "Invalid task ID")
+		utils.HandleError(c, http.StatusBadRequest, "Invalid task ID")
 		return
 	}
 
-	if err := services.DeleteTaskService(id); err != nil {
+	service := services.NewTaskService()
+	if err := service.DeleteTask(id, userID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			handleError(c, http.StatusNotFound, "Task not found")
+			utils.HandleError(c, http.StatusNotFound, "Task not found")
 		} else {
-			handleError(c, http.StatusInternalServerError, "Failed to delete task")
+			utils.HandleError(c, http.StatusInternalServerError, "Failed to delete task")
 		}
 		return
 	}

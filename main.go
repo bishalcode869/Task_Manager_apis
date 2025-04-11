@@ -12,7 +12,7 @@ import (
 // main intializes the server an sets up routes
 func main() {
 	config.Connect()
-	if err := config.DB.AutoMigrate(&models.Task{}); err != nil {
+	if err := config.DB.AutoMigrate(&models.Task{}, models.User{}); err != nil {
 		fmt.Println("Migration failed", err)
 		return
 	}
@@ -21,6 +21,7 @@ func main() {
 
 	// Register routes
 	routes.TaskRoutes(r)
+	routes.UserRouter(r)
 
 	fmt.Printf("🚀 Server is running at http://localhost:8080")
 	r.Run(":8080")
