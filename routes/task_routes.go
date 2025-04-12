@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// this is routes for task
 func TaskRoutes(r *gin.Engine) {
 	r.GET("/", controllers.Home)
 	tasks := r.Group("/tasks")
