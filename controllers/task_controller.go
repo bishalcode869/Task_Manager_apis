@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"Task_manager_apis/config"
 	"Task_manager_apis/models"
 	"Task_manager_apis/services"
 	"Task_manager_apis/utils"
@@ -12,12 +13,10 @@ import (
 	"gorm.io/gorm"
 )
 
-// Home returns a welcome message
 func Home(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Welcome to Task_Manager_Application"})
 }
 
-// AddTask adds a new task to the database
 func AddTask(c *gin.Context) {
 	var newTask models.Task
 
@@ -26,12 +25,13 @@ func AddTask(c *gin.Context) {
 		return
 	}
 
-	// Get user ID from context
 	userID := c.GetUint("userID")
 	newTask.UserID = userID
 
-	service := services.NewTaskService()
-	if err := service.CreateTask(&newTask); err != nil {
+	taskRepo := models.NewTaskRepository(config.DB)
+	taskService := services.NewTaskService(taskRepo)
+
+	if err := taskService.CreateTask(&newTask); err != nil {
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to add task")
 		return
 	}
@@ -39,7 +39,6 @@ func AddTask(c *gin.Context) {
 	c.JSON(http.StatusCreated, newTask)
 }
 
-// ListTasks retrieves a list of tasks with pagination
 func ListTasks(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -58,8 +57,10 @@ func ListTasks(c *gin.Context) {
 		return
 	}
 
-	service := services.NewTaskService()
-	tasks, err := service.GetAllTasks(userID, page, limit)
+	taskRepo := models.NewTaskRepository(config.DB)
+	taskService := services.NewTaskService(taskRepo)
+
+	tasks, err := taskService.GetAllTasks(userID, page, limit)
 	if err != nil {
 		utils.HandleError(c, http.StatusInternalServerError, "Failed to fetch tasks")
 		return
@@ -68,7 +69,6 @@ func ListTasks(c *gin.Context) {
 	c.JSON(http.StatusOK, tasks)
 }
 
-// GetByID retrieves a task by its ID
 func GetByID(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -78,8 +78,10 @@ func GetByID(c *gin.Context) {
 		return
 	}
 
-	service := services.NewTaskService()
-	task, err := service.GetTaskByID(id, userID)
+	taskRepo := models.NewTaskRepository(config.DB)
+	taskService := services.NewTaskService(taskRepo)
+
+	task, err := taskService.GetTaskByID(id, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.HandleError(c, http.StatusNotFound, "Task not found")
@@ -92,7 +94,6 @@ func GetByID(c *gin.Context) {
 	c.JSON(http.StatusOK, task)
 }
 
-// MarkTaskDone marks a task as done
 func MarkTaskDone(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -102,8 +103,10 @@ func MarkTaskDone(c *gin.Context) {
 		return
 	}
 
-	service := services.NewTaskService()
-	task, err := service.MarkTaskDone(id, userID)
+	taskRepo := models.NewTaskRepository(dbInstance.GetDB())
+	taskService := services.NewTaskService(taskRepo)
+
+	task, err := taskService.MarkTaskDone(id, userID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.HandleError(c, http.StatusNotFound, "Task not found")
@@ -116,7 +119,6 @@ func MarkTaskDone(c *gin.Context) {
 	c.JSON(http.StatusOK, task)
 }
 
-// DeleteTask deletes a task by its ID
 func DeleteTask(c *gin.Context) {
 	userID := c.GetUint("userID")
 
@@ -126,8 +128,10 @@ func DeleteTask(c *gin.Context) {
 		return
 	}
 
-	service := services.NewTaskService()
-	if err := service.DeleteTask(id, userID); err != nil {
+	taskRepo := models.NewTaskRepository(config.DB)
+	taskService := services.NewTaskService(taskRepo)
+
+	if err := taskService.DeleteTask(id, userID); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			utils.HandleError(c, http.StatusNotFound, "Task not found")
 		} else {

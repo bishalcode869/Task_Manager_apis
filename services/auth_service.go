@@ -4,15 +4,16 @@ import (
 	"Task_manager_apis/models"
 	"Task_manager_apis/utils"
 	"errors"
-	"fmt"
 )
 
 // AuthService struct to group authentication function
-type AuthService struct{}
+type AuthService struct {
+	UserRepo *models.UserRepository
+}
 
 // NewAuthService creatres a new instance of AuthService
-func NewAuthService() *AuthService {
-	return &AuthService{}
+func NewAuthService(userRepo *models.UserRepository) *AuthService {
+	return &AuthService{UserRepo: userRepo}
 }
 
 // for CreateUser
@@ -20,6 +21,15 @@ func (s *AuthService) CreateUser(user *models.User) error {
 	// validate user input
 	if user.Email == "" || user.Password == "" {
 		return errors.New("email and password are required")
+	}
+
+	// Check if the user already exists
+	exists, err := s.UserRepo.UserExists(user.Email)
+	if err != nil {
+		return err
+	}
+	if exists {
+		return errors.New("user with this email already exists")
 	}
 
 	// Hash the password before storing
@@ -30,24 +40,18 @@ func (s *AuthService) CreateUser(user *models.User) error {
 	user.Password = hashedPassword
 
 	// Save user to the databse using the model function
-	return models.CreateUser(user)
+	return s.UserRepo.CreateUser(user)
 }
 
 // Login handles user login and returns JWT if successful
 func (s *AuthService) LoginUser(email, password string) (string, error) {
-	fmt.Println("Login attempt for:", email)
-
-	user, err := models.GetUserByEmail(email)
+	user, err := s.UserRepo.GetUserByEmail(email)
 	if err != nil {
-		return "", errors.New("Invalid email or password")
+		return "", errors.New("invalid email or password")
 	}
 
-	fmt.Println("Found user:", user.Email)
-	fmt.Println("Entered password:", password)
-	fmt.Println("Stored hash:", user.Password)
-
 	if !utils.CompareHashPassword(password, user.Password) {
-		return "", errors.New("Invalid email or password")
+		return "", errors.New("invalid email or password")
 	}
 
 	// Generate JWT token
@@ -55,6 +59,6 @@ func (s *AuthService) LoginUser(email, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return token, nil
 
+	return token, nil
 }

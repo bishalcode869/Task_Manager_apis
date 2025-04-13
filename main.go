@@ -5,24 +5,34 @@ import (
 	"Task_manager_apis/models"
 	"Task_manager_apis/routes"
 	"fmt"
+	"log"
 
 	"github.com/gin-gonic/gin"
 )
 
 // main intializes the server an sets up routes
 func main() {
-	config.Connect()
-	if err := config.DB.AutoMigrate(&models.Task{}, models.User{}); err != nil {
-		fmt.Println("Migration failed", err)
-		return
+	// Connect to DB and get instance
+	dbInstance, err := config.NewDatabase()
+	if err != nil {
+		log.Fatalf("Error initializing the database: %v", err)
 	}
 
-	r := gin.Default()
+	db := dbInstance.GetDB()
 
-	// Register routes
-	routes.TaskRoutes(r)
-	routes.UserRouter(r)
+	// Run migrations (optional)
+	if err := db.AutoMigrate(&models.User{}, &models.Task{}); err != nil {
+		log.Fatal("Error running migrations: %v", err)
+	}
+
+	router := gin.Default()
+
+	// Setup routes
+	routes.UserRoutes(router)
+	routes.TaskRoutes(router)
 
 	fmt.Printf("🚀 Server is running at http://localhost:8080")
-	r.Run(":8080")
+	if err := router.Run(":8080"); err != nil {
+		log.Fatal("Error starting server: %v", err)
+	}
 }

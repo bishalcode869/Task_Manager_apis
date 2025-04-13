@@ -9,9 +9,11 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+type Database struct {
+	DB *gorm.DB
+}
 
-func Connect() {
+func NewDatabase() (*Database, error) {
 
 	LoadEnv()
 
@@ -37,10 +39,16 @@ func Connect() {
 	db, err := gorm.Open(postgres.Open(dns), &gorm.Config{})
 	if err != nil {
 		// Log the error with details and stop execution if the connection fails.
-		log.Fatal("Falied to connect to database: ", err)
+		log.Fatal("Failed to connect to database: ", err)
 	}
 
-	// Set the global DB variable
-	DB = db
-	log.Println("successfully connected to the database")
+	log.Println("Successfully connected to the database")
+
+	return &Database{DB: db}, nil
+
+}
+
+// GetDB return the underlying *gorm.Db instance
+func (d *Database) GetDB() *gorm.DB {
+	return d.DB
 }
